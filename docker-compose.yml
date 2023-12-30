@@ -11,28 +11,45 @@ services:
       - POSTGRES_DB=prefect
     expose:
       - 5432
-    volumes: 
+    ports:
+      - "5432:5432"
+    volumes:
       - db:/var/lib/postgresql/data
-    profiles: ["server"]
-  
+    profiles: [ "server" ]
+
   ### MinIO for flow storage
   minio:
     image: minio/minio:latest
-    entrypoint: ["minio", "server", "--address", "0.0.0.0:9000", "--console-address", "0.0.0.0:9001", "/data"]
+    entrypoint:
+      [
+        "minio",
+        "server",
+        "--address",
+        "0.0.0.0:9000",
+        "--console-address",
+        "0.0.0.0:9001",
+        "/data"
+      ]
     volumes:
       - "minio:/data"
     ports:
       - 9000:9000
       - 9001:9001
-    profiles: ["minio"]
+    profiles: [ "minio" ]
 
   ### Prefect Server API and UI
   server:
-    image: prefecthq/prefect:2.11.5-python3.11
+    image: prefecthq/prefect:2.14.12-python3.11
     restart: always
     volumes:
       - prefect:/root/.prefect
-    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "server", "start"]
+    entrypoint:
+      [
+        "/opt/prefect/entrypoint.sh",
+        "prefect",
+        "server",
+        "start"
+      ]
     environment:
       - PREFECT_UI_URL=http://127.0.0.1:4200/api
       - PREFECT_API_URL=http://127.0.0.1:4200/api
@@ -48,32 +65,40 @@ services:
       - 4200:4200
     depends_on:
       - database
-    profiles: ["server"]
+    profiles: [ "server" ]
 
   ## Prefect Agent
   agent:
-    image: prefecthq/prefect:2.11.5-python3.11
+    image: prefecthq/prefect:2.14.12-python3.11
     restart: always
-    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "agent", "start", "-q", "YOUR_WORK_QUEUE_NAME"]
+    entrypoint:
+      [
+        "/opt/prefect/entrypoint.sh",
+        "prefect",
+        "agent",
+        "start",
+        "-q",
+        "YOUR_WORK_QUEUE_NAME"
+      ]
     environment:
       - PREFECT_API_URL=http://server:4200/api
-#       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
-#     - PREFECT_API_KEY=YOUR_API_KEY
-    profiles: ["agent"]
+    #       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
+    #     - PREFECT_API_KEY=YOUR_API_KEY
+    profiles: [ "agent" ]
 
   ### Prefect CLI
   cli:
-    image: prefecthq/prefect:2.11.5-python3.11
+    image: prefecthq/prefect:2.14.12-python3.11
     entrypoint: "bash"
     working_dir: "/root/flows"
     volumes:
       - "./flows:/root/flows"
     environment:
       - PREFECT_API_URL=http://server:4200/api
-#       Use PREFECT_API_KEY to use the CLI to interact with Prefect Cloud
-#     - PREFECT_API_KEY=YOUR_API_KEY
-    profiles: ["cli"]
-      
+    #       Use PREFECT_API_KEY to use the CLI to interact with Prefect Cloud
+    #     - PREFECT_API_KEY=YOUR_API_KEY
+    profiles: [ "cli" ]
+
 volumes:
   prefect:
   db:
